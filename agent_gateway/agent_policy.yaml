@@ -1,0 +1,49 @@
+# What each AI agent may do through the gateway (STD-AI-02, STD-AI-03).
+# Changes require review from the governance owner (see .github/CODEOWNERS).
+#
+# tools:   every tool the gateway can offer, with its risk level
+# agents:  per-agent allowlist, approval rules, and limits
+#
+# An agent never sees tools outside its allowlist, and the gateway re-checks
+# the allowlist on every call (defense in depth).
+
+version: 1
+
+tools:
+  get_policy:          {risk: low,    description: Read a policy (contact details masked)}
+  search_claims:       {risk: low,    description: List claims by status or policy}
+  get_claim:           {risk: low,    description: Read a claim with notes and payments}
+  check_approval:      {risk: low,    description: Check the status of an approval request}
+  file_claim:          {risk: medium, description: File a new claim}
+  add_claim_note:      {risk: medium, description: Add a note to a claim}
+  update_claim_status: {risk: high,   description: Change a claim's status}
+  propose_payment:     {risk: high,   description: Propose a claim payment for a human to approve}
+
+agents:
+  agent-claims-assistant:
+    description: Helps adjusters triage and review claims.
+    allowed_tools:
+      - get_policy
+      - search_claims
+      - get_claim
+      - check_approval
+      - add_claim_note
+      - update_claim_status
+      - propose_payment
+    approval_required:
+      update_claim_status:
+        when_status_in: [approved, denied]   # moving to under_review is fine; decisions need a human
+      propose_payment:
+        always: true
+    limits:
+      max_payment_cents: 2500000             # $25,000. Above this the gateway refuses outright.
+      max_tool_calls_per_session: 40
+
+  agent-intake-bot:
+    description: Files new claims (first notice of loss) from member chats.
+    allowed_tools:
+      - get_policy
+      - file_claim
+      - add_claim_note
+    limits:
+      max_tool_calls_per_session: 20

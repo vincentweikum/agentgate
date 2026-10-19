@@ -1,0 +1,2172 @@
+# GENERATED from the code by scripts/export_openapi.py. Do not edit by hand.
+openapi: 3.1.0
+info:
+  title: AgentGate Claims API
+  description: 'Policies, claims, notes, and payments for personal lines auto and home insurance.
+
+
+    **Authentication:** OAuth 2.0 client credentials. Get a token from `/oauth/token`
+
+    and send it as `Authorization: Bearer <token>`. Each endpoint lists the scope it needs.
+
+
+    **Errors:** every error uses RFC 9457 Problem Details (`application/problem+json`).
+
+
+    **Versioning:** the major version is in the path (`/v2`). Breaking changes require a
+
+    new major version. `v1` is deprecated and sunsets on 2027-03-31.
+
+
+    **Rate limits:** 120 requests per minute per client. See the `RateLimit-*` response headers.'
+  contact:
+    name: Claims Platform team
+    email: claims-platform@agentgate.example
+  license:
+    name: MIT
+    identifier: MIT
+  version: 2.0.0
+  x-api-id: agentgate-claims
+  x-owner: claims-platform
+  x-lifecycle-status: active
+  x-data-classification: confidential
+servers:
+- url: https://api.agentgate.example
+  description: Production environment (example)
+  x-internal: false
+- url: https://sandbox.api.agentgate.example
+  description: Sandbox environment for integration testing (example)
+  x-internal: true
+paths:
+  /v2/policies/{policy_id}:
+    get:
+      tags:
+      - Policies
+      summary: Get a policy
+      description: Returns policy details. Policyholder email and phone are masked unless the caller has `pii:read`.
+      operationId: getPolicy
+      security:
+      - OAuth2:
+        - policies:read
+      parameters:
+      - name: policy_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 10
+          pattern: ^POL-[0-9]{6}$
+          description: Policy ID, like POL-100231.
+          examples:
+          - POL-100231
+          title: Policy Id
+        description: Policy ID, like POL-100231.
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Policy'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '401':
+          description: Missing, expired, or invalid access token.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '403':
+          description: The token is valid but lacks the required scope.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '429':
+          description: Rate limit exceeded. Retry after the time in the Retry-After header.
+          headers:
+            Retry-After:
+              description: Seconds until the rate limit window resets.
+              schema:
+                type: integer
+                minimum: 0
+                maximum: 3600
+                format: int32
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+        '404':
+          description: The resource does not exist.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '422':
+          description: The request failed validation.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+  /v2/claims:
+    get:
+      tags:
+      - Claims
+      summary: List claims
+      description: Lists claims, newest IDs last. Filter by status and/or policy. Paginated with limit/offset.
+      operationId: listClaims
+      security:
+      - OAuth2:
+        - claims:read
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          $ref: '#/components/schemas/ClaimStatus'
+          description: Only return claims in this status.
+          examples:
+          - open
+        description: Only return claims in this status.
+      - name: policy_id
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 10
+          pattern: ^POL-[0-9]{6}$
+          description: Only return claims for this policy.
+          examples:
+          - POL-100231
+          title: Policy Id
+        description: Only return claims for this policy.
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          description: Page size (max 100).
+          format: int32
+          default: 20
+          title: Limit
+        description: Page size (max 100).
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 10000
+          minimum: 0
+          description: Number of items to skip.
+          format: int32
+          default: 0
+          title: Offset
+        description: Number of items to skip.
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimPage'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '401':
+          description: Missing, expired, or invalid access token.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '403':
+          description: The token is valid but lacks the required scope.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '429':
+          description: Rate limit exceeded. Retry after the time in the Retry-After header.
+          headers:
+            Retry-After:
+              description: Seconds until the rate limit window resets.
+              schema:
+                type: integer
+                minimum: 0
+                maximum: 3600
+                format: int32
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+        '422':
+          description: The request failed validation.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+    post:
+      tags:
+      - Claims
+      summary: File a new claim
+      description: Creates a claim in `open` status (first notice of loss). The policy must exist and be active.
+      operationId: createClaim
+      security:
+      - OAuth2:
+        - claims:write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClaimCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Claim'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '401':
+          description: Missing, expired, or invalid access token.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '403':
+          description: The token is valid but lacks the required scope.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '429':
+          description: Rate limit exceeded. Retry after the time in the Retry-After header.
+          headers:
+            Retry-After:
+              description: Seconds until the rate limit window resets.
+              schema:
+                type: integer
+                minimum: 0
+                maximum: 3600
+                format: int32
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+        '400':
+          description: Bad request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '404':
+          description: The resource does not exist.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '409':
+          description: The request conflicts with the resource's current state.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '422':
+          description: The request failed validation.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+  /v2/claims/{claim_id}:
+    get:
+      tags:
+      - Claims
+      summary: Get a claim
+      description: Returns a claim with its notes and payments.
+      operationId: getClaim
+      security:
+      - OAuth2:
+        - claims:read
+      parameters:
+      - name: claim_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 12
+          pattern: ^CLM-[0-9]{4,8}$
+          description: Claim ID, like CLM-2001.
+          examples:
+          - CLM-2001
+          title: Claim Id
+        description: Claim ID, like CLM-2001.
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Claim'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '401':
+          description: Missing, expired, or invalid access token.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '403':
+          description: The token is valid but lacks the required scope.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '429':
+          description: Rate limit exceeded. Retry after the time in the Retry-After header.
+          headers:
+            Retry-After:
+              description: Seconds until the rate limit window resets.
+              schema:
+                type: integer
+                minimum: 0
+                maximum: 3600
+                format: int32
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+        '404':
+          description: The resource does not exist.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '422':
+          description: The request failed validation.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+  /v2/claims/{claim_id}/notes:
+    post:
+      tags:
+      - Claims
+      summary: Add a note to a claim
+      description: Appends a note. The author is recorded from the caller's token, so notes written by AI agents are always
+        labeled.
+      operationId: addClaimNote
+      security:
+      - OAuth2:
+        - claims:write
+      parameters:
+      - name: claim_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 12
+          pattern: ^CLM-[0-9]{4,8}$
+          description: Claim ID, like CLM-2001.
+          examples:
+          - CLM-2001
+          title: Claim Id
+        description: Claim ID, like CLM-2001.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NoteCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimNote'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '401':
+          description: Missing, expired, or invalid access token.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '403':
+          description: The token is valid but lacks the required scope.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '429':
+          description: Rate limit exceeded. Retry after the time in the Retry-After header.
+          headers:
+            Retry-After:
+              description: Seconds until the rate limit window resets.
+              schema:
+                type: integer
+                minimum: 0
+                maximum: 3600
+                format: int32
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+        '400':
+          description: Bad request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '404':
+          description: The resource does not exist.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '422':
+          description: The request failed validation.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+  /v2/claims/{claim_id}/status:
+    patch:
+      tags:
+      - Claims
+      summary: Change a claim's status
+      description: 'Moves a claim through its workflow: open -> under_review -> approved/denied -> closed. Invalid transitions
+        return 409. Approving requires `approved_amount_cents`, which can''t exceed the policy''s coverage limit.'
+      operationId: updateClaimStatus
+      security:
+      - OAuth2:
+        - claims:write
+      parameters:
+      - name: claim_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 12
+          pattern: ^CLM-[0-9]{4,8}$
+          description: Claim ID, like CLM-2001.
+          examples:
+          - CLM-2001
+          title: Claim Id
+        description: Claim ID, like CLM-2001.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StatusUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Claim'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '401':
+          description: Missing, expired, or invalid access token.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '403':
+          description: The token is valid but lacks the required scope.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '429':
+          description: Rate limit exceeded. Retry after the time in the Retry-After header.
+          headers:
+            Retry-After:
+              description: Seconds until the rate limit window resets.
+              schema:
+                type: integer
+                minimum: 0
+                maximum: 3600
+                format: int32
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+        '400':
+          description: Bad request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '404':
+          description: The resource does not exist.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '409':
+          description: The request conflicts with the resource's current state.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '422':
+          description: The request failed validation.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+  /v2/claims/{claim_id}/payments:
+    post:
+      tags:
+      - Payments
+      summary: Issue a claim payment
+      description: Issues a payment on an approved claim and marks it paid. Requires `payments:write`, which only human-operated
+        applications hold. AI agents can propose payments through the agent gateway, but a human must approve them.
+      operationId: createPayment
+      security:
+      - OAuth2:
+        - payments:write
+      parameters:
+      - name: claim_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 12
+          pattern: ^CLM-[0-9]{4,8}$
+          description: ID of an approved claim, like CLM-2004.
+          examples:
+          - CLM-2004
+          title: Claim Id
+        description: ID of an approved claim, like CLM-2004.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '401':
+          description: Missing, expired, or invalid access token.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '403':
+          description: The token is valid but lacks the required scope.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '429':
+          description: Rate limit exceeded. Retry after the time in the Retry-After header.
+          headers:
+            Retry-After:
+              description: Seconds until the rate limit window resets.
+              schema:
+                type: integer
+                minimum: 0
+                maximum: 3600
+                format: int32
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+        '400':
+          description: Bad request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '404':
+          description: The resource does not exist.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '409':
+          description: The request conflicts with the resource's current state.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '422':
+          description: The request failed validation.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+  /v1/claims/{claim_id}:
+    get:
+      tags:
+      - Claims (v1, deprecated)
+      summary: Get a claim (v1, deprecated)
+      description: Deprecated. Use `GET /v2/claims/{claim_id}`. Sunsets on 2027-03-31, after which it returns 410 Gone.
+      operationId: getClaimV1
+      deprecated: true
+      security:
+      - OAuth2:
+        - claims:read
+      parameters:
+      - name: claim_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 12
+          pattern: ^CLM-[0-9]{4,8}$
+          description: Claim ID, like CLM-2001.
+          title: Claim Id
+        description: Claim ID, like CLM-2001.
+      responses:
+        '200':
+          description: The claim, in the v1 shape.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimV1'
+          headers:
+            Deprecation:
+              description: When this version was deprecated (RFC 9745).
+              schema:
+                type: string
+                maxLength: 20
+                pattern: ^@[0-9]+$
+            Sunset:
+              description: When this version stops working (RFC 8594).
+              schema:
+                type: string
+                maxLength: 40
+                pattern: ^[A-Za-z]{3}, [0-9]{2} [A-Za-z]{3} [0-9]{4} [0-9:]{8} GMT$
+            Link:
+              description: Points to the replacement endpoint (rel=successor-version).
+              schema:
+                type: string
+                maxLength: 200
+                pattern: ^<[^>]+>; rel="successor-version"$
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '401':
+          description: Missing, expired, or invalid access token.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '403':
+          description: The token is valid but lacks the required scope.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '404':
+          description: The resource does not exist.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '410':
+          description: This API version has been retired.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '422':
+          description: The request failed validation.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '429':
+          description: Rate limit exceeded. Retry after the time in the Retry-After header.
+          headers:
+            Retry-After:
+              description: Seconds until the rate limit window resets.
+              schema:
+                type: integer
+                minimum: 0
+                maximum: 3600
+                format: int32
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+      x-sunset: '2027-03-31'
+      x-successor: getClaim
+  /health:
+    get:
+      tags:
+      - Health
+      summary: Health check
+      description: Liveness check. Intentionally public (see governance exception EXC-001).
+      operationId: getHealth
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+        '429':
+          description: Rate limit exceeded. Retry after the time in the Retry-After header.
+          headers:
+            Retry-After:
+              description: Seconds until the rate limit window resets.
+              schema:
+                type: integer
+                maximum: 3600
+                minimum: 0
+                format: int32
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+            RateLimit-Limit:
+              $ref: '#/components/headers/RateLimit-Limit'
+            RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimit-Remaining'
+            RateLimit-Reset:
+              $ref: '#/components/headers/RateLimit-Reset'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/Access-Control-Allow-Origin'
+      security: []
+components:
+  schemas:
+    Claim:
+      properties:
+        claim_id:
+          type: string
+          maxLength: 12
+          pattern: ^CLM-[0-9]{4,8}$
+          title: Claim Id
+          examples:
+          - CLM-2001
+        policy_id:
+          type: string
+          maxLength: 10
+          pattern: ^POL-[0-9]{6}$
+          title: Policy Id
+        status:
+          $ref: '#/components/schemas/ClaimStatus'
+        loss_type:
+          $ref: '#/components/schemas/LossType'
+        loss_date:
+          type: string
+          maxLength: 10
+          format: date
+          title: Loss Date
+        description:
+          type: string
+          maxLength: 2000
+          pattern: ^[^\x00-\x08\x0B\x0C\x0E-\x1F\x7F]*$
+          title: Description
+        estimated_loss_cents:
+          type: integer
+          maximum: 100000000
+          minimum: 0
+          format: int64
+          title: Estimated Loss Cents
+        approved_amount_cents:
+          anyOf:
+          - type: integer
+            maximum: 100000000
+            minimum: 0
+            format: int64
+          - type: 'null'
+          title: Approved Amount Cents
+          description: Amount approved, in US cents.
+        notes:
+          items:
+            $ref: '#/components/schemas/ClaimNote'
+          type: array
+          maxItems: 200
+          title: Notes
+        payments:
+          items:
+            $ref: '#/components/schemas/Payment'
+          type: array
+          maxItems: 50
+          title: Payments
+        created_by:
+          type: string
+          maxLength: 64
+          pattern: ^[a-z][a-z0-9-]{2,63}$
+          title: Created By
+        created_at:
+          type: string
+          maxLength: 35
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          maxLength: 35
+          format: date-time
+          title: Updated At
+      additionalProperties: false
+      type: object
+      required:
+      - claim_id
+      - policy_id
+      - status
+      - loss_type
+      - loss_date
+      - description
+      - estimated_loss_cents
+      - created_by
+      - created_at
+      - updated_at
+      title: Claim
+    ClaimCreate:
+      properties:
+        policy_id:
+          type: string
+          maxLength: 10
+          pattern: ^POL-[0-9]{6}$
+          title: Policy Id
+          examples:
+          - POL-100231
+        loss_type:
+          $ref: '#/components/schemas/LossType'
+          examples:
+          - collision
+        loss_date:
+          type: string
+          maxLength: 10
+          format: date
+          title: Loss Date
+          examples:
+          - '2026-10-10'
+        description:
+          type: string
+          maxLength: 2000
+          minLength: 10
+          pattern: ^[^\x00-\x08\x0B\x0C\x0E-\x1F\x7F]*$
+          title: Description
+          examples:
+          - Rear-ended at a stoplight on I-880. Bumper and trunk damage.
+        estimated_loss_cents:
+          type: integer
+          maximum: 100000000
+          minimum: 0
+          format: int64
+          title: Estimated Loss Cents
+          examples:
+          - 420000
+      additionalProperties: false
+      type: object
+      required:
+      - policy_id
+      - loss_type
+      - loss_date
+      - description
+      - estimated_loss_cents
+      title: ClaimCreate
+    ClaimNote:
+      properties:
+        note_id:
+          type: string
+          maxLength: 15
+          pattern: ^NOTE-[0-9]{1,10}$
+          title: Note Id
+        author:
+          type: string
+          maxLength: 64
+          pattern: ^[a-z][a-z0-9-]{2,63}$
+          title: Author
+          description: Client ID that wrote the note.
+        author_type:
+          $ref: '#/components/schemas/ClientType'
+        text:
+          type: string
+          maxLength: 2000
+          pattern: ^[^\x00-\x08\x0B\x0C\x0E-\x1F\x7F]*$
+          title: Text
+        created_at:
+          type: string
+          maxLength: 35
+          format: date-time
+          title: Created At
+      additionalProperties: false
+      type: object
+      required:
+      - note_id
+      - author
+      - author_type
+      - text
+      - created_at
+      title: ClaimNote
+    ClaimPage:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/ClaimSummary'
+          type: array
+          maxItems: 100
+          title: Items
+        total:
+          type: integer
+          maximum: 1000000
+          minimum: 0
+          format: int32
+          title: Total
+        limit:
+          type: integer
+          maximum: 100
+          minimum: 1
+          format: int32
+          title: Limit
+        offset:
+          type: integer
+          maximum: 10000
+          minimum: 0
+          format: int32
+          title: Offset
+        next_offset:
+          anyOf:
+          - type: integer
+            maximum: 10100
+            minimum: 0
+            format: int32
+          - type: 'null'
+          title: Next Offset
+          description: Offset of the next page, or null on the last page.
+      additionalProperties: false
+      type: object
+      required:
+      - items
+      - total
+      - limit
+      - offset
+      title: ClaimPage
+    ClaimStatus:
+      type: string
+      enum:
+      - open
+      - under_review
+      - approved
+      - denied
+      - paid
+      - closed
+      title: ClaimStatus
+    ClaimSummary:
+      properties:
+        claim_id:
+          type: string
+          maxLength: 12
+          pattern: ^CLM-[0-9]{4,8}$
+          title: Claim Id
+        policy_id:
+          type: string
+          maxLength: 10
+          pattern: ^POL-[0-9]{6}$
+          title: Policy Id
+        status:
+          $ref: '#/components/schemas/ClaimStatus'
+        loss_type:
+          $ref: '#/components/schemas/LossType'
+        loss_date:
+          type: string
+          maxLength: 10
+          format: date
+          title: Loss Date
+        estimated_loss_cents:
+          type: integer
+          maximum: 100000000
+          minimum: 0
+          format: int64
+          title: Estimated Loss Cents
+        updated_at:
+          type: string
+          maxLength: 35
+          format: date-time
+          title: Updated At
+      additionalProperties: false
+      type: object
+      required:
+      - claim_id
+      - policy_id
+      - status
+      - loss_type
+      - loss_date
+      - estimated_loss_cents
+      - updated_at
+      title: ClaimSummary
+    ClaimV1:
+      properties:
+        id:
+          type: string
+          maxLength: 12
+          pattern: ^CLM-[0-9]{4,8}$
+          title: Id
+        policy:
+          type: string
+          maxLength: 10
+          pattern: ^POL-[0-9]{6}$
+          title: Policy
+        status:
+          $ref: '#/components/schemas/ClaimStatus'
+        type:
+          $ref: '#/components/schemas/LossType'
+        amount:
+          type: string
+          maxLength: 16
+          pattern: ^[0-9]+\.[0-9]{2}$
+          title: Amount
+          description: Estimated loss in dollars, as a string.
+        date:
+          type: string
+          maxLength: 10
+          format: date
+          title: Date
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - policy
+      - status
+      - type
+      - amount
+      - date
+      title: ClaimV1
+      description: 'Original v1 shape: money as a dollar string, terse field names.
+
+
+        v2 replaced this because string money caused rounding bugs downstream and
+
+        the field names were ambiguous. Changing them was a breaking change, so it
+
+        required a new major version (STD-VER-01).'
+    ClientType:
+      type: string
+      enum:
+      - application
+      - ai_agent
+      title: ClientType
+    FieldError:
+      properties:
+        field:
+          type: string
+          maxLength: 200
+          pattern: ^[^\x00-\x08\x0B\x0C\x0E-\x1F\x7F]*$
+          title: Field
+          description: Dotted path to the field that failed validation.
+        message:
+          type: string
+          maxLength: 500
+          pattern: ^[^\x00-\x08\x0B\x0C\x0E-\x1F\x7F]*$
+          title: Message
+          description: What was wrong with the field.
+      additionalProperties: false
+      type: object
+      required:
+      - field
+      - message
+      title: FieldError
+    Health:
+      properties:
+        status:
+          type: string
+          maxLength: 8
+          pattern: ^(ok|degraded)$
+          title: Status
+        version:
+          type: string
+          maxLength: 32
+          pattern: ^[0-9]+\.[0-9]+\.[0-9]+$
+          title: Version
+      additionalProperties: false
+      type: object
+      required:
+      - status
+      - version
+      title: Health
+    LossType:
+      type: string
+      enum:
+      - collision
+      - comprehensive
+      - liability
+      - theft
+      - water_damage
+      - fire
+      - wind_hail
+      - falling_object
+      title: LossType
+    NoteCreate:
+      properties:
+        text:
+          type: string
+          maxLength: 2000
+          minLength: 1
+          pattern: ^[^\x00-\x08\x0B\x0C\x0E-\x1F\x7F]*$
+          title: Text
+          examples:
+          - Called the policyholder to confirm the repair shop.
+      additionalProperties: false
+      type: object
+      required:
+      - text
+      title: NoteCreate
+    Payment:
+      properties:
+        payment_id:
+          type: string
+          maxLength: 15
+          pattern: ^PAY-[0-9]{1,10}$
+          title: Payment Id
+        amount_cents:
+          type: integer
+          maximum: 100000000
+          minimum: 1
+          format: int64
+          title: Amount Cents
+        payee_name:
+          type: string
+          maxLength: 120
+          pattern: ^[^\x00-\x08\x0B\x0C\x0E-\x1F\x7F]*$
+          title: Payee Name
+        issued_by:
+          type: string
+          maxLength: 64
+          pattern: ^[a-z][a-z0-9-]{2,63}$
+          title: Issued By
+          description: Client ID that issued the payment.
+        approved_by:
+          type: string
+          maxLength: 120
+          pattern: ^[^\x00-\x08\x0B\x0C\x0E-\x1F\x7F]*$
+          title: Approved By
+          description: Human approver of record.
+        created_at:
+          type: string
+          maxLength: 35
+          format: date-time
+          title: Created At
+      additionalProperties: false
+      type: object
+      required:
+      - payment_id
+      - amount_cents
+      - payee_name
+      - issued_by
+      - approved_by
+      - created_at
+      title: Payment
+    PaymentCreate:
+      properties:
+        amount_cents:
+          type: integer
+          maximum: 100000000
+          minimum: 1
+          format: int64
+          title: Amount Cents
+          examples:
+          - 420000
+        payee_name:
+          type: string
+          maxLength: 120
+          minLength: 2
+          pattern: ^[^\x00-\x08\x0B\x0C\x0E-\x1F\x7F]*$
+          title: Payee Name
+          examples:
+          - Maria Delgado
+        approved_by:
+          type: string
+          maxLength: 120
+          minLength: 2
+          pattern: ^[^\x00-\x08\x0B\x0C\x0E-\x1F\x7F]*$
+          title: Approved By
+          description: Name of the human who approved this payment.
+          examples:
+          - J. Alvarez (Claims Supervisor)
+      additionalProperties: false
+      type: object
+      required:
+      - amount_cents
+      - payee_name
+      - approved_by
+      title: PaymentCreate
+    Policy:
+      properties:
+        policy_id:
+          type: string
+          maxLength: 10
+          pattern: ^POL-[0-9]{6}$
+          title: Policy Id
+          examples:
+          - POL-100231
+        product:
+          $ref: '#/components/schemas/ProductLine'
+        status:
+          $ref: '#/components/schemas/PolicyStatus'
+        state:
+          type: string
+          maxLength: 2
+          pattern: ^[A-Z]{2}$
+          title: State
+          description: Two-letter US state code.
+          examples:
+          - CA
+        effective_date:
+          type: string
+          maxLength: 10
+          format: date
+          title: Effective Date
+        expiration_date:
+          type: string
+          maxLength: 10
+          format: date
+          title: Expiration Date
+        coverage_limit_cents:
+          type: integer
+          maximum: 100000000
+          minimum: 0
+          format: int64
+          title: Coverage Limit Cents
+          description: Coverage limit in US cents.
+        deductible_cents:
+          type: integer
+          maximum: 100000000
+          minimum: 0
+          format: int64
+          title: Deductible Cents
+          description: Deductible in US cents.
+        policyholder:
+          $ref: '#/components/schemas/Policyholder'
+        pii_masked:
+          type: boolean
+          title: Pii Masked
+          description: True when contact details were masked for this caller.
+      additionalProperties: false
+      type: object
+      required:
+      - policy_id
+      - product
+      - status
+      - state
+      - effective_date
+      - expiration_date
+      - coverage_limit_cents
+      - deductible_cents
+      - policyholder
+      - pii_masked
+      title: Policy
+    PolicyStatus:
+      type: string
+      enum:
+      - active
+      - lapsed
+      - cancelled
+      title: PolicyStatus
+    Policyholder:
+      properties:
+        name:
+          type: string
+          maxLength: 120
+          pattern: ^[^\x00-\x08\x0B\x0C\x0E-\x1F\x7F]*$
+          title: Name
+          description: Policyholder's full name.
+        email:
+          type: string
+          maxLength: 254
+          pattern: ^[^\s@]+@[^\s@]+$
+          title: Email
+          description: Contact email. Masked unless the caller has the pii:read scope.
+        phone:
+          type: string
+          maxLength: 32
+          pattern: ^[0-9()+*. -]{3,32}$
+          title: Phone
+          description: Contact phone. Masked unless the caller has the pii:read scope.
+      additionalProperties: false
+      type: object
+      required:
+      - name
+      - email
+      - phone
+      title: Policyholder
+    Problem:
+      properties:
+        type:
+          type: string
+          maxLength: 300
+          pattern: ^https://[A-Za-z0-9./_-]+$
+          title: Type
+          description: URI that identifies the problem type.
+          examples:
+          - https://docs.agentgate.example/problems/not-found
+        title:
+          type: string
+          maxLength: 200
+          pattern: ^[^\x00-\x08\x0B\x0C\x0E-\x1F\x7F]*$
+          title: Title
+          description: Short, human-readable summary of the problem type.
+        status:
+          type: integer
+          maximum: 599
+          minimum: 400
+          format: int32
+          title: Status
+          description: HTTP status code.
+        detail:
+          type: string
+          maxLength: 1000
+          pattern: ^[^\x00-\x08\x0B\x0C\x0E-\x1F\x7F]*$
+          title: Detail
+          description: Human-readable explanation specific to this occurrence.
+        code:
+          type: string
+          maxLength: 64
+          pattern: ^[a-z0-9_]+$
+          title: Code
+          description: Stable machine-readable error code.
+        instance:
+          anyOf:
+          - type: string
+            maxLength: 500
+            pattern: ^[^\x00-\x08\x0B\x0C\x0E-\x1F\x7F]*$
+          - type: 'null'
+          title: Instance
+          description: The request path that caused the problem.
+        request_id:
+          anyOf:
+          - type: string
+            maxLength: 64
+            pattern: ^[A-Za-z0-9-]{8,64}$
+          - type: 'null'
+          title: Request Id
+          description: Correlates with server logs.
+        errors:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/FieldError'
+            type: array
+            maxItems: 50
+          - type: 'null'
+          title: Errors
+          description: Field-level validation errors.
+      additionalProperties: false
+      type: object
+      required:
+      - type
+      - title
+      - status
+      - detail
+      - code
+      title: Problem
+      description: RFC 9457 Problem Details object.
+    ProductLine:
+      type: string
+      enum:
+      - auto
+      - home
+      title: ProductLine
+    StatusUpdate:
+      if:
+        properties:
+          status:
+            const: approved
+        required:
+        - status
+      then:
+        properties:
+          approved_amount_cents:
+            type: integer
+            maximum: 100000000
+            minimum: 0
+            format: int64
+        required:
+        - approved_amount_cents
+      properties:
+        status:
+          $ref: '#/components/schemas/ClaimStatus'
+          examples:
+          - under_review
+        reason:
+          type: string
+          maxLength: 500
+          minLength: 3
+          pattern: ^[^\x00-\x08\x0B\x0C\x0E-\x1F\x7F]*$
+          title: Reason
+          examples:
+          - Photos and police report received.
+        approved_amount_cents:
+          anyOf:
+          - type: integer
+            maximum: 100000000
+            minimum: 0
+            format: int64
+          - type: 'null'
+          title: Approved Amount Cents
+          description: Required when status is 'approved'.
+      additionalProperties: false
+      type: object
+      required:
+      - status
+      - reason
+      title: StatusUpdate
+  securitySchemes:
+    OAuth2:
+      type: oauth2
+      description: 'OAuth 2.0 client credentials. Access tokens are RS256-signed JWTs that expire after 15 minutes and follow
+        RFC8725 (JWT Best Current Practices): the algorithm is pinned, and issuer, audience, and expiry are always verified.
+        Public keys are published at /.well-known/jwks.json.'
+      flows:
+        clientCredentials:
+          scopes:
+            policies:read: Read policy details
+            claims:read: Read claims
+            claims:write: Create claims, add notes, and change claim status
+            payments:write: Issue claim payments
+            pii:read: See unmasked policyholder contact details
+          tokenUrl: /oauth/token
+  headers:
+    X-Request-ID:
+      description: Unique ID for this request. Include it when reporting problems.
+      schema:
+        type: string
+        maxLength: 64
+        pattern: ^[A-Za-z0-9-]{8,64}$
+    Access-Control-Allow-Origin:
+      description: Present when the request came from an allowed browser origin.
+      schema:
+        type: string
+        maxLength: 200
+        format: uri
+    RateLimit-Limit:
+      description: Requests allowed per one-minute window.
+      schema:
+        type: integer
+        format: int32
+        minimum: 0
+        maximum: 100000
+    RateLimit-Remaining:
+      description: Requests left in the current window.
+      schema:
+        type: integer
+        format: int32
+        minimum: 0
+        maximum: 100000
+    RateLimit-Reset:
+      description: Seconds until the window resets.
+      schema:
+        type: integer
+        format: int32
+        minimum: 0
+        maximum: 100000
+tags:
+- name: Policies
+  description: Insurance policies.
+- name: Claims
+  description: Claims, notes, and claim status.
+- name: Payments
+  description: Claim payments. Human-operated clients only.
+- name: Claims (v1, deprecated)
+  description: Deprecated v1 endpoints. Sunsets 2027-03-31.
+- name: Health
+  description: Service health.

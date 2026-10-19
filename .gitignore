@@ -1,0 +1,14 @@
+# secrets and local state
+.env
+state/
+reports/
+site/
+
+# tooling
+.venv/
+node_modules/
+__pycache__/
+*.pyc
+.pytest_cache/
+.hypothesis/
+.schemathesis/

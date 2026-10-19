@@ -1,0 +1,41 @@
+# Registered OAuth 2.0 clients.
+#
+# Every caller, human-facing app or AI agent, gets its OWN client identity with
+# only the scopes it needs (least privilege). Secrets are never stored here:
+# each client's secret is read from the environment variable in `secret_env`.
+#
+# Scopes:
+#   policies:read   read policy details
+#   claims:read     read claims
+#   claims:write    create claims, add notes, change claim status
+#   payments:write  issue claim payments (humans only)
+#   pii:read        see unmasked policyholder contact details
+
+clients:
+  claims-portal:
+    type: application
+    owner: digital-experience-team
+    description: Member-facing claims portal (web and mobile).
+    scopes: [policies:read, claims:read, claims:write, pii:read]
+    secret_env: CLAIMS_PORTAL_SECRET
+
+  adjuster-console:
+    type: application
+    owner: claims-operations
+    description: Internal tool used by human claims adjusters and supervisors.
+    scopes: [policies:read, claims:read, claims:write, payments:write, pii:read]
+    secret_env: ADJUSTER_CONSOLE_SECRET
+
+  agent-claims-assistant:
+    type: ai_agent
+    owner: claims-ai-team
+    description: AI assistant that helps adjusters triage and review claims. Can propose, never pay.
+    scopes: [policies:read, claims:read, claims:write]
+    secret_env: AGENT_CLAIMS_ASSISTANT_SECRET
+
+  agent-intake-bot:
+    type: ai_agent
+    owner: claims-ai-team
+    description: AI agent that files new claims (first notice of loss) from member chats.
+    scopes: [policies:read, claims:write]
+    secret_env: AGENT_INTAKE_BOT_SECRET

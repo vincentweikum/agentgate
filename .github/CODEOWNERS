@@ -1,0 +1,21 @@
+# Changes to these paths need a review from the governance owner.
+# Turn on "Require review from Code Owners" in branch protection for main.
+#
+# CI checks each pull request with that pull request's own copy of the
+# governance scripts (so rule changes are tested before they merge). That's
+# only safe because changes to the scripts, rules, and gateway are owned here.
+
+# Governance rules, exceptions, standards, and the pipeline itself
+/governance/                      @YOUR-GITHUB-USERNAME
+/STANDARDS.md                     @YOUR-GITHUB-USERNAME
+/.github/                         @YOUR-GITHUB-USERNAME
+/scripts/                         @YOUR-GITHUB-USERNAME
+/tests/test_governance.py         @YOUR-GITHUB-USERNAME
+
+# Who can call the API with which scopes, and how tokens are checked
+/config/clients.yaml              @YOUR-GITHUB-USERNAME
+/app/auth.py                      @YOUR-GITHUB-USERNAME
+
+# What AI agents can do, and the evals that prove the guardrails hold
+/agent_gateway/                   @YOUR-GITHUB-USERNAME
+/evals/                           @YOUR-GITHUB-USERNAME

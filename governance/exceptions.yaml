@@ -1,0 +1,54 @@
+# Governance exceptions (waivers).
+#
+# Sometimes a rule doesn't fit a specific case. Instead of turning the rule
+# off for everyone, a team requests an exception for ONE target, with a
+# reason, compensating controls, an approver, and an expiry date.
+#
+# Enforced by scripts/governance_lint.py:
+#   - an exception only waives the listed rules at the listed target
+#   - expired exceptions stop working, so the findings fail the build again
+#   - no exception may last more than 12 months
+#   - exceptions that no longer match anything are flagged for cleanup
+#
+# Fields: id, rules, target (path in the spec, dot-separated), reason,
+# compensating_controls, requested_by, approved_by, approved_on, expires_on
+#
+# Retired: EXC-002 (OWASP refresh-token rule misfiring on client credentials).
+# Every API using our token service would have needed it, so instead of
+# waiving it everywhere we replaced the rule with agentgate-token-lifetime.
+
+exceptions:
+  - id: EXC-001
+    rules:
+      - agentgate-security-scopes
+      - owasp:api2:2023-read-restricted
+      - owasp:api8:2023-define-error-responses-401
+      - owasp:api8:2023-define-error-validation
+    target: paths./health.get
+    reason: >-
+      Load balancers and uptime monitors must be able to call the health check
+      without credentials. It takes no input and returns only a status and version.
+    compensating_controls:
+      - Returns no business or personal data
+      - Rate limited per IP address
+    requested_by: claims-platform
+    approved_by: api-governance
+    approved_on: 2026-10-19
+    expires_on: 2027-10-18
+
+  - id: EXC-003
+    rules:
+      - agentgate-money-in-cents
+    target: components.schemas.ClaimV1
+    reason: >-
+      v1 returns money as a dollar string, which is exactly why v2 exists.
+      v1 is deprecated and frozen; fixing it in place would break existing callers.
+      This exception expires on v1's sunset date, when v1 is retired.
+    compensating_controls:
+      - v1 is read-only (GET only)
+      - Deprecation and Sunset headers on every v1 response
+      - Dashboard tracks remaining v1 callers
+    requested_by: claims-platform
+    approved_by: api-governance
+    approved_on: 2026-10-19
+    expires_on: 2027-03-31

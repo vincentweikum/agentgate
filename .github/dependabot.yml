@@ -1,0 +1,16 @@
+# Keeps dependencies and CI actions patched. Each update arrives as a pull
+# request and goes through the same governance pipeline as any other change.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

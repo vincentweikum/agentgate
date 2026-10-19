@@ -1,0 +1,161 @@
+# Reusable API governance pipeline.
+#
+# Any repo can plug this in with a few lines:
+#
+#   jobs:
+#     governance:
+#       uses: YOUR-GITHUB-USERNAME/agentgate/.github/workflows/api-governance.yml@main
+#       with:
+#         spec_path: openapi/my-api.yaml
+#         python_dirs: app
+#
+# It runs three checks on every pull request:
+#   1. API standards + OWASP API Top 10 lint, with approved exceptions applied
+#   2. Breaking-change detection against the target branch's spec
+#   3. Security scans of the code (Bandit) and dependencies (pip-audit)
+
+name: API governance (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      spec_path:
+        description: Path to the OpenAPI spec in the calling repo.
+        type: string
+        required: true
+      exceptions_path:
+        description: Path to the governance exceptions file in the calling repo (optional).
+        type: string
+        default: governance/exceptions.yaml
+      python_dirs:
+        description: Space-separated Python source folders to scan with Bandit.
+        type: string
+        default: app
+      requirements_file:
+        description: Python requirements file to audit for known vulnerabilities.
+        type: string
+        default: requirements.txt
+      governance_repo:
+        description: The repo that holds the shared rules (owner/name).
+        type: string
+        default: YOUR-GITHUB-USERNAME/agentgate
+      governance_ref:
+        description: Branch, tag, or commit of the shared rules to use.
+        type: string
+        default: main
+
+permissions:
+  contents: read
+
+jobs:
+  api-lint:
+    name: API standards + OWASP lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Fetch shared governance rules
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          repository: ${{ inputs.governance_repo }}
+          ref: ${{ inputs.governance_ref }}
+          path: .governance
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - name: Install Spectral and the OWASP ruleset
+        run: npm ci --prefix .governance --no-audit --no-fund
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.13"
+
+      - run: pip install PyYAML==6.0.3
+
+      - name: Lint the spec (exceptions applied)
+        env:
+          SPEC: ${{ inputs.spec_path }}
+          EXCEPTIONS: ${{ inputs.exceptions_path }}
+        run: >-
+          python .governance/scripts/governance_lint.py
+          --spec "$SPEC"
+          --ruleset .governance/governance/.spectral.yaml
+          --exceptions "$EXCEPTIONS"
+          --report reports/lint-report.json
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: lint-report
+          path: reports/lint-report.json
+
+  breaking-changes:
+    name: Breaking-change check
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+
+      - name: Fetch shared governance scripts
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          repository: ${{ inputs.governance_repo }}
+          ref: ${{ inputs.governance_ref }}
+          path: .governance
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.13"
+
+      - name: Install oasdiff (pinned version, checksum verified)
+        run: |
+          curl -sSL -o "$RUNNER_TEMP/oasdiff.tgz" \
+            https://github.com/oasdiff/oasdiff/releases/download/v1.34.0/oasdiff_1.34.0_linux_amd64.tar.gz
+          echo "7c88e09fd500b231af2819eb21f6fdfc7bcdfe2741d2c1937c59e7b72c8a575a  $RUNNER_TEMP/oasdiff.tgz" | sha256sum --check
+          tar xzf "$RUNNER_TEMP/oasdiff.tgz" -C "$RUNNER_TEMP" oasdiff
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+
+      - name: Get the spec from the target branch
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          SPEC: ${{ inputs.spec_path }}
+        run: git show "origin/${BASE_REF}:${SPEC}" > "$RUNNER_TEMP/base-spec.yaml" || rm -f "$RUNNER_TEMP/base-spec.yaml"
+
+      - name: Compare
+        env:
+          SPEC: ${{ inputs.spec_path }}
+        run: >-
+          python .governance/scripts/check_breaking.py
+          --base "$RUNNER_TEMP/base-spec.yaml"
+          --revision "$SPEC"
+          --report reports/breaking-changes.json
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: breaking-changes
+          path: reports/breaking-changes.json
+
+  security-scan:
+    name: Security scans (code + dependencies)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.13"
+
+      - run: pip install bandit==1.9.4 pip-audit==2.10.1
+
+      - name: Static analysis (Bandit, medium severity and up blocks)
+        env:
+          DIRS: ${{ inputs.python_dirs }}
+        run: bandit -r $DIRS -ll
+
+      - name: Known-vulnerable dependencies (pip-audit)
+        env:
+          REQS: ${{ inputs.requirements_file }}
+        run: pip-audit -r "$REQS" --progress-spinner off

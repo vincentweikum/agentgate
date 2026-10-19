@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  # The same reusable pipeline other teams plug in, run against this repo's own API.
+  governance:
+    uses: ./.github/workflows/api-governance.yml
+    with:
+      spec_path: openapi/agentgate-claims.yaml
+      python_dirs: app agent_gateway
+      governance_repo: ${{ github.repository }}
+      governance_ref: ${{ github.sha }}
+
+  tests:
+    name: Tests, contract tests, and agent evals
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: |
+          pip install -r requirements-dev.txt
+          npm ci --no-audit --no-fund
+
+      - name: Committed spec matches the code (STD-DATA-04)
+        run: python scripts/export_openapi.py --check
+
+      - name: API catalog is valid (STD-CAT-01)
+        run: python scripts/catalog.py validate
+
+      - name: Postman collection matches the spec
+        run: |
+          python scripts/postman.py
+          git diff --exit-code postman/ || (echo "::error::Postman collection is stale. Run python scripts/postman.py and commit." && exit 1)
+
+      - name: Unit tests
+        run: pytest
+
+      - name: Contract tests (Schemathesis)
+        run: python scripts/contract_test.py --max-examples 50
+
+      - name: Agent guardrail scenarios
+        run: python -m evals.run
+
+      - name: Audit log integrity
+        run: python -m agent_gateway.audit verify --path reports/eval-audit.jsonl
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: test-reports
+          path: reports/
+

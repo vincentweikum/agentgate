@@ -1,0 +1,35 @@
+# API catalog entry. One file per API. This is the inventory record:
+# who owns it, what state it's in, which versions exist, and who depends on it.
+# The API itself reads the `versions` block to send deprecation/sunset headers,
+# so lifecycle info lives in exactly one place. Validated in CI against
+# governance/catalog.schema.json.
+
+api_id: agentgate-claims
+name: AgentGate Claims API
+description: Policies, claims, notes, and payments for personal lines auto and home insurance.
+owner:
+  team: claims-platform
+  contact: claims-platform@agentgate.example
+lifecycle_status: active
+spec: openapi/agentgate-claims.yaml
+data_classification: confidential
+contains_pii: true
+versions:
+  - version: v1
+    status: deprecated
+    released_on: 2025-02-01
+    deprecated_on: 2026-10-01
+    sunset_on: 2027-03-31
+    successor: v2
+  - version: v2
+    status: active
+    released_on: 2026-10-01
+dependencies:
+  - policy-admin-system
+  - payments-ledger
+consumers:
+  - claims-portal
+  - adjuster-console
+  - agent-claims-assistant
+  - agent-intake-bot
+tags: [claims, payments, pii]

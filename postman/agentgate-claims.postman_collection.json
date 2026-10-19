@@ -1,0 +1,586 @@
+{
+  "item": [
+    {
+      "name": "Policies",
+      "description": "Insurance policies.",
+      "item": [
+        {
+          "name": "Get a policy",
+          "request": {
+            "name": "Get a policy",
+            "description": {
+              "content": "Returns policy details. Policyholder email and phone are masked unless the caller has `pii:read`.",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "v2",
+                "policies",
+                ":policy_id"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "type": "any",
+                  "value": "POL-100231",
+                  "key": "policy_id",
+                  "disabled": false,
+                  "description": {
+                    "content": "(Required) Policy ID, like POL-100231.",
+                    "type": "text/plain"
+                  }
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET",
+            "body": {},
+            "auth": {
+              "type": "inherit"
+            }
+          },
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "Claims",
+      "description": "Claims, notes, and claim status.",
+      "item": [
+        {
+          "name": "List claims",
+          "request": {
+            "name": "List claims",
+            "description": {
+              "content": "Lists claims, newest IDs last. Filter by status and/or policy. Paginated with limit/offset.",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "v2",
+                "claims"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [
+                {
+                  "disabled": true,
+                  "description": {
+                    "content": "Only return claims in this status. (This can only be one of open,under_review,approved,denied,paid,closed)",
+                    "type": "text/plain"
+                  },
+                  "key": "status",
+                  "value": "open"
+                },
+                {
+                  "disabled": true,
+                  "description": {
+                    "content": "Only return claims for this policy.",
+                    "type": "text/plain"
+                  },
+                  "key": "policy_id",
+                  "value": "POL-100231"
+                },
+                {
+                  "disabled": false,
+                  "description": {
+                    "content": "Page size (max 100).",
+                    "type": "text/plain"
+                  },
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "disabled": false,
+                  "description": {
+                    "content": "Number of items to skip.",
+                    "type": "text/plain"
+                  },
+                  "key": "offset",
+                  "value": "0"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET",
+            "body": {},
+            "auth": {
+              "type": "inherit"
+            }
+          },
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
+          "name": "File a new claim",
+          "request": {
+            "name": "File a new claim",
+            "description": {
+              "content": "Creates a claim in `open` status (first notice of loss). The policy must exist and be active.",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "v2",
+                "claims"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"policy_id\": \"POL-100231\",\n  \"loss_type\": \"collision\",\n  \"loss_date\": \"2026-10-10\",\n  \"description\": \"Rear-ended at a stoplight on I-880. Bumper and trunk damage.\",\n  \"estimated_loss_cents\": 420000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "inherit"
+            }
+          },
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
+          "name": "Get a claim",
+          "request": {
+            "name": "Get a claim",
+            "description": {
+              "content": "Returns a claim with its notes and payments.",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "v2",
+                "claims",
+                ":claim_id"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "type": "any",
+                  "value": "CLM-2001",
+                  "key": "claim_id",
+                  "disabled": false,
+                  "description": {
+                    "content": "(Required) Claim ID, like CLM-2001.",
+                    "type": "text/plain"
+                  }
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET",
+            "body": {},
+            "auth": {
+              "type": "inherit"
+            }
+          },
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
+          "name": "Add a note to a claim",
+          "request": {
+            "name": "Add a note to a claim",
+            "description": {
+              "content": "Appends a note. The author is recorded from the caller's token, so notes written by AI agents are always labeled.",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "v2",
+                "claims",
+                ":claim_id",
+                "notes"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "type": "any",
+                  "value": "CLM-2001",
+                  "key": "claim_id",
+                  "disabled": false,
+                  "description": {
+                    "content": "(Required) Claim ID, like CLM-2001.",
+                    "type": "text/plain"
+                  }
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Called the policyholder to confirm the repair shop.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "inherit"
+            }
+          },
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
+          "name": "Change a claim's status",
+          "request": {
+            "name": "Change a claim's status",
+            "description": {
+              "content": "Moves a claim through its workflow: open -> under_review -> approved/denied -> closed. Invalid transitions return 409. Approving requires `approved_amount_cents`, which can't exceed the policy's coverage limit.",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "v2",
+                "claims",
+                ":claim_id",
+                "status"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "type": "any",
+                  "value": "CLM-2001",
+                  "key": "claim_id",
+                  "disabled": false,
+                  "description": {
+                    "content": "(Required) Claim ID, like CLM-2001.",
+                    "type": "text/plain"
+                  }
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "PATCH",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"under_review\",\n  \"reason\": \"Photos and police report received.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "inherit"
+            }
+          },
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "description": "Claim payments. Human-operated clients only.",
+      "item": [
+        {
+          "name": "Issue a claim payment",
+          "request": {
+            "name": "Issue a claim payment",
+            "description": {
+              "content": "Issues a payment on an approved claim and marks it paid. Requires `payments:write`, which only human-operated applications hold. AI agents can propose payments through the agent gateway, but a human must approve them.",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "v2",
+                "claims",
+                ":claim_id",
+                "payments"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "type": "any",
+                  "value": "CLM-2004",
+                  "key": "claim_id",
+                  "disabled": false,
+                  "description": {
+                    "content": "(Required) ID of an approved claim, like CLM-2004.",
+                    "type": "text/plain"
+                  }
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount_cents\": 225000,\n  \"payee_name\": \"Lena Fischer\",\n  \"approved_by\": \"J. Alvarez (Claims Supervisor)\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "inherit"
+            }
+          },
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "Claims (v1, deprecated)",
+      "description": "Deprecated v1 endpoints. Sunsets 2027-03-31.",
+      "item": [
+        {
+          "name": "Get a claim (v1, deprecated)",
+          "request": {
+            "name": "Get a claim (v1, deprecated)",
+            "description": {
+              "content": "Deprecated. Use `GET /v2/claims/{claim_id}`. Sunsets on 2027-03-31, after which it returns 410 Gone.",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "v1",
+                "claims",
+                ":claim_id"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "type": "any",
+                  "value": "CLM-2001",
+                  "key": "claim_id",
+                  "disabled": false,
+                  "description": {
+                    "content": "(Required) Claim ID, like CLM-2001.",
+                    "type": "text/plain"
+                  }
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET",
+            "body": {},
+            "auth": {
+              "type": "inherit"
+            }
+          },
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "description": "Service health.",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "name": "Health check",
+            "description": {
+              "content": "Liveness check. Intentionally public (see governance exception EXC-001).",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "health"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET",
+            "body": {},
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        }
+      ]
+    }
+  ],
+  "event": [],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "clientId",
+      "value": "claims-portal"
+    },
+    {
+      "key": "clientSecret",
+      "value": ""
+    },
+    {
+      "key": "scope",
+      "value": ""
+    }
+  ],
+  "info": {
+    "name": "AgentGate Claims API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Generated from openapi/agentgate-claims.yaml by scripts/postman.py. Do not edit by hand. Choose the 'AgentGate local' environment, set clientSecret, then use Authorization > Get New Access Token."
+  },
+  "auth": {
+    "type": "oauth2",
+    "oauth2": [
+      {
+        "key": "grant_type",
+        "value": "client_credentials",
+        "type": "string"
+      },
+      {
+        "key": "accessTokenUrl",
+        "value": "{{baseUrl}}/oauth/token",
+        "type": "string"
+      },
+      {
+        "key": "clientId",
+        "value": "{{clientId}}",
+        "type": "string"
+      },
+      {
+        "key": "clientSecret",
+        "value": "{{clientSecret}}",
+        "type": "string"
+      },
+      {
+        "key": "scope",
+        "value": "{{scope}}",
+        "type": "string"
+      },
+      {
+        "key": "client_authentication",
+        "value": "body",
+        "type": "string"
+      },
+      {
+        "key": "tokenName",
+        "value": "AgentGate token",
+        "type": "string"
+      },
+      {
+        "key": "addTokenTo",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  }
+}

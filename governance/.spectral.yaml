@@ -1,0 +1,264 @@
+# AgentGate API governance ruleset (governance-as-code).
+#
+# Each custom rule enforces a standard in STANDARDS.md; the STD-* ID is in
+# every message so a developer can look up the "why". On top of our own
+# rules we pull in the general OpenAPI rules and the OWASP API Security
+# Top 10 (2023) ruleset.
+#
+# Severity "error" fails the pipeline unless an approved, unexpired exception
+# in governance/exceptions.yaml covers it. "warn" is reported but doesn't block.
+
+extends:
+  - spectral:oas
+  - "../node_modules/@stoplight/spectral-owasp-ruleset/dist/ruleset.mjs"
+
+rules:
+  # ---- Built-in rules we treat as blocking ----
+  operation-operationId: error
+  operation-description: error
+  operation-tags: error
+  info-contact: error
+
+  agentgate-operation-summary:
+    description: Every operation has a short summary (it becomes the docs title and the agent tool title).
+    message: "STD-DOC-01: operation needs a summary."
+    severity: error
+    given: "$.paths[*][get,put,post,patch,delete]"
+    then:
+      field: summary
+      function: truthy
+
+  # ---- Tuned OWASP rule ----
+  # The OWASP rule wants a refresh URL, which misfires on the client credentials
+  # grant (RFC 6749 4.4.3: no refresh tokens). Every API using our token service
+  # would need the same exception, so we replace the rule instead of waiving it
+  # everywhere. What we actually care about is that tokens expire.
+  owasp:api2:2023-short-lived-access-tokens: off
+  agentgate-token-lifetime:
+    description: OAuth2 schemes document how long access tokens live (they must expire).
+    message: "STD-SEC-04: OAuth2 security schemes must state when access tokens expire."
+    severity: error
+    given: "$.components.securitySchemes[?(@.type == 'oauth2')]"
+    then:
+      field: description
+      function: pattern
+      functionOptions:
+        match: "[Ee]xpire"
+
+  # ---- STD-VER: versioning ----
+  agentgate-paths-versioned:
+    description: Every path starts with a major version like /v2/ (only /health is exempt).
+    message: "STD-VER-01: path '{{property}}' must start with a major version, like /v2/."
+    severity: error
+    given: "$.paths"
+    then:
+      field: "@key"
+      function: pattern
+      functionOptions:
+        match: "^/(v[0-9]+/|health$)"
+
+  # ---- STD-NAME: naming ----
+  agentgate-paths-kebab-case:
+    description: Path segments are lowercase kebab-case; path parameters are snake_case.
+    message: "STD-NAME-01: path '{{property}}' must use lowercase kebab-case segments."
+    severity: error
+    given: "$.paths"
+    then:
+      field: "@key"
+      function: pattern
+      functionOptions:
+        match: "^(/([a-z0-9]+(-[a-z0-9]+)*|\\{[a-z][a-z0-9_]*\\}))+$"
+
+  agentgate-operation-id-camel-case:
+    description: operationIds are camelCase verbs, like getClaim or listClaims.
+    message: "STD-NAME-02: operationId '{{value}}' must be camelCase."
+    severity: error
+    given: "$.paths[*][get,put,post,patch,delete]"
+    then:
+      field: operationId
+      function: pattern
+      functionOptions:
+        match: "^[a-z][a-zA-Z0-9]*$"
+
+  agentgate-properties-snake-case:
+    description: Schema property names are snake_case.
+    message: "STD-NAME-03: property '{{property}}' must be snake_case."
+    severity: error
+    given: "$.components.schemas[*].properties"
+    then:
+      field: "@key"
+      function: pattern
+      functionOptions:
+        match: "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
+
+  # ---- STD-ERR: errors ----
+  agentgate-errors-problem-json:
+    description: Every 4xx/5xx response uses application/problem+json (RFC 9457).
+    message: "STD-ERR-01: error responses must be application/problem+json."
+    severity: error
+    given: "$.paths[*][*].responses[?(@property.match(/^[45]/))].content"
+    then:
+      field: "application/problem+json"
+      function: truthy
+
+  agentgate-errors-shared-schema:
+    description: Error responses use the shared Problem schema so clients need one error handler.
+    message: "STD-ERR-02: error responses must use #/components/schemas/Problem."
+    severity: error
+    # Look at the spec before $refs are resolved, so we can see which schema is referenced.
+    resolved: false
+    given:
+      - "$.paths[*][*].responses[?(@property.match(/^[45]/))].content['application/problem+json'].schema"
+      - "$.components.responses[*].content['application/problem+json'].schema"
+    then:
+      - field: "$ref"
+        function: truthy
+      - field: "$ref"
+        function: pattern
+        functionOptions:
+          match: "#/components/schemas/Problem$"
+
+  # ---- STD-SEC: security ----
+  agentgate-security-scopes:
+    description: Every operation requires an OAuth2 token with at least one scope.
+    message: "STD-SEC-01: operation must require OAuth2 with at least one scope (or have an approved exception)."
+    severity: error
+    given: "$.paths[*][get,put,post,patch,delete]"
+    then:
+      field: security
+      function: schema
+      functionOptions:
+        schema:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [OAuth2]
+            properties:
+              OAuth2:
+                type: array
+                minItems: 1
+
+  agentgate-payments-scope:
+    description: Payment endpoints require the payments:write scope, which AI agents never hold.
+    message: "STD-SEC-02: payment operations must require the payments:write scope."
+    severity: error
+    given: "$.paths[?(@property.match(/payments/))][post,put,patch,delete].security[*].OAuth2"
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: array
+          contains:
+            const: "payments:write"
+
+  # ---- STD-DATA: data contracts ----
+  agentgate-closed-objects:
+    description: Object schemas set additionalProperties to false so unknown fields are rejected.
+    message: "STD-DATA-01: object schema must set additionalProperties: false."
+    severity: error
+    given: "$.components.schemas[?(@.type == 'object')]"
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          required: [additionalProperties]
+          properties:
+            additionalProperties:
+              const: false
+
+  agentgate-money-in-cents:
+    description: Money is an integer number of cents in a field ending in _cents. Never a float or string.
+    message: "STD-DATA-02: money field '{{property}}' must be an integer named *_cents."
+    severity: error
+    given: "$.components.schemas[*].properties[?(@property.match(/(amount|price|cost|premium)$/i))]"
+    then:
+      function: falsy
+
+  agentgate-cents-are-integers:
+    description: Fields ending in _cents are integers.
+    message: "STD-DATA-02: fields ending in _cents must be integers ({{path}})."
+    severity: error
+    given: "$.components.schemas[*].properties[?(@property.match(/_cents$/))]"
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          anyOf:
+            - required: [type]
+              properties:
+                type:
+                  const: integer
+            - required: [anyOf]
+              properties:
+                anyOf:
+                  contains:
+                    properties:
+                      type:
+                        const: integer
+
+  agentgate-pii-fields-documented:
+    description: Personal-data fields say how they're protected (masking or required scope).
+    message: "STD-PII-01: PII fields must say how they're masked or which scope unlocks them ({{path}})."
+    severity: error
+    given: "$.components.schemas[*].properties[?(@property.match(/^(email|phone|ssn|date_of_birth|dob|address)$/))]"
+    then:
+      field: description
+      function: pattern
+      functionOptions:
+        match: "(mask|pii:read)"
+
+  # ---- STD-PAGE: pagination ----
+  agentgate-list-pagination:
+    description: List operations take a bounded 'limit' parameter so nobody can pull unlimited data.
+    message: "STD-PAGE-01: list operations must have a 'limit' query parameter with a maximum."
+    severity: error
+    given: "$.paths[*][?(@property === 'get' && @.operationId && @.operationId.match(/^list/))]"
+    then:
+      field: parameters
+      function: schema
+      functionOptions:
+        schema:
+          type: array
+          contains:
+            type: object
+            required: [name, schema]
+            properties:
+              name:
+                const: limit
+              schema:
+                type: object
+                required: [maximum]
+
+  # ---- STD-LIFE: lifecycle ----
+  agentgate-deprecated-has-sunset:
+    description: Deprecated operations declare a sunset date and the operation that replaces them.
+    message: "STD-LIFE-01: deprecated operation needs x-sunset (YYYY-MM-DD) and x-successor."
+    severity: error
+    given: "$.paths[*][?(@.deprecated === true)]"
+    then:
+      - field: x-sunset
+        function: truthy
+      - field: x-sunset
+        function: pattern
+        functionOptions:
+          match: "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+      - field: x-successor
+        function: truthy
+
+  # ---- STD-CAT: catalog ----
+  agentgate-info-catalog-metadata:
+    description: The spec carries its catalog ID, owning team, and lifecycle status.
+    message: "STD-CAT-01: info must include x-api-id, x-owner, and a valid x-lifecycle-status."
+    severity: error
+    given: "$.info"
+    then:
+      - field: x-api-id
+        function: truthy
+      - field: x-owner
+        function: truthy
+      - field: x-lifecycle-status
+        function: enumeration
+        functionOptions:
+          values: [design, active, deprecated, retired]
