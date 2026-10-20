@@ -5,6 +5,6 @@
   "devDependencies": {
     "@stoplight/spectral-cli": "^6.15.0",
     "@stoplight/spectral-owasp-ruleset": "^2.0.1",
-    "openapi-to-postmanv2": "^5.0.0"
+    "openapi-to-postmanv2": "^6.4.0"
   }
 }
