@@ -6,16 +6,16 @@
 # only safe because changes to the scripts, rules, and gateway are owned here.
 
 # Governance rules, exceptions, standards, and the pipeline itself
-/governance/                      @YOUR-GITHUB-USERNAME
-/STANDARDS.md                     @YOUR-GITHUB-USERNAME
-/.github/                         @YOUR-GITHUB-USERNAME
-/scripts/                         @YOUR-GITHUB-USERNAME
-/tests/test_governance.py         @YOUR-GITHUB-USERNAME
+/governance/                      @vincentweikum
+/STANDARDS.md                     @vincentweikum
+/.github/                         @vincentweikum
+/scripts/                         @vincentweikum
+/tests/test_governance.py         @vincentweikum
 
 # Who can call the API with which scopes, and how tokens are checked
-/config/clients.yaml              @YOUR-GITHUB-USERNAME
-/app/auth.py                      @YOUR-GITHUB-USERNAME
+/config/clients.yaml              @vincentweikum
+/app/auth.py                      @vincentweikum
 
 # What AI agents can do, and the evals that prove the guardrails hold
-/agent_gateway/                   @YOUR-GITHUB-USERNAME
-/evals/                           @YOUR-GITHUB-USERNAME
+/agent_gateway/                   @vincentweikum
+/evals/                           @vincentweikum

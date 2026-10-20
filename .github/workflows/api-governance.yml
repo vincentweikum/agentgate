@@ -4,7 +4,7 @@
 #
 #   jobs:
 #     governance:
-#       uses: YOUR-GITHUB-USERNAME/agentgate/.github/workflows/api-governance.yml@main
+#       uses: vincentweikum/agentgate/.github/workflows/api-governance.yml@main
 #       with:
 #         spec_path: openapi/my-api.yaml
 #         python_dirs: app
@@ -38,7 +38,7 @@ on:
       governance_repo:
         description: The repo that holds the shared rules (owner/name).
         type: string
-        default: YOUR-GITHUB-USERNAME/agentgate
+        default: vincentweikum/agentgate
       governance_ref:
         description: Branch, tag, or commit of the shared rules to use.
         type: string
