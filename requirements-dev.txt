@@ -1,6 +1,6 @@
 # Tooling for tests, governance checks, and evals
 -r requirements.txt
-pytest==9.1.1
+pytest==9.2.0
 schemathesis==4.32.1
 bandit==1.9.4
 pip-audit==2.10.1
