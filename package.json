@@ -3,7 +3,7 @@
   "private": true,
   "description": "Node tooling used by the governance checks: Spectral (API lint) and the Postman converter.",
   "devDependencies": {
-    "@stoplight/spectral-cli": "^6.15.0",
+    "@stoplight/spectral-cli": "^6.17.1",
     "@stoplight/spectral-owasp-ruleset": "^2.0.1",
     "openapi-to-postmanv2": "^5.0.0"
   }
